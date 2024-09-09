@@ -1,0 +1,6 @@
+- rule: Unexpected Network Connection
+  desc: Detect unexpected outbound network connections from critical containers
+  condition: outbound and container.name in (guacamole, nginx) and not fd.sip in (allowed_ip_list)
+  output: "Unexpected network connection from %container.name to %fd.sip"
+  priority: WARNING
+  tags: [network, container]

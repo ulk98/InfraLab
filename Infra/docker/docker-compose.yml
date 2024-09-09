@@ -1,0 +1,105 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: guac_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: guac_db
+      MYSQL_USER: guac_user
+      MYSQL_PASSWORD: "adminpassword"
+    networks:
+      - infra_net
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    networks:
+      - infra_net
+
+  guacamole:
+    image: guacamole/guacamole
+    container_name: guacamole
+    depends_on:
+      - mysql
+      - guacd
+      - ldap
+    environment:
+      GUACD_HOSTNAME: guacd
+      MYSQL_HOSTNAME: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: guac_db
+      MYSQL_USER: guac_user
+      MYSQL_PASSWORD: "adminpassword"
+      LDAP_HOSTNAME: ldap
+      LDAP_PORT: 389
+      LDAP_USER_BASE_DN: "ou=users,dc=infra_lab,dc=com"
+      LDAP_CONFIG_BASE_DN: "ou=config,dc=infra_lab,dc=com"
+      LDAP_GROUP_BASE_DN: "ou=groups,dc=infra_lab,dc=com"
+      LDAP_USERNAME_ATTRIBUTE: "uid"
+      LDAP_SEARCH_BIND_DN: "cn=admin,dc=infra_lab,dc=com"
+      LDAP_SEARCH_BIND_PASSWORD: "adminpassword"
+    networks:
+      - infra_net
+    ports:
+      - "8080:8080"
+
+  nginx:
+    image: nginx:latest
+    container_name: guac_nginx
+    depends_on:
+      - guacamole
+    networks:
+      - infra_net
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "443:443"
+    depends_on:
+      - guacamole
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: guac_ldap
+    environment:
+      LDAP_ORGANISATION: "Unilim - CRYPTIS"
+      LDAP_DOMAIN: "infra_lab.com"
+      LDAP_ADMIN_PASSWORD: "adminpassword"
+    networks:
+      - infra_net
+    ports:
+      - "389:389"
+      - "636:636"
+    volumes:
+      - ./ldap_data:/container/service/slapd/assets/config/bootstrap/ldif/custom
+
+
+  falco:
+    image: falcosecurity/falco:latest
+    container_name: guac_falco
+    networks:
+      - infra_net
+    privileged: true
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - ./falco:/etc/falco
+
+networks:
+  infra_net:
+    external: true
+
+volumes:
+  mysql_data:
+
