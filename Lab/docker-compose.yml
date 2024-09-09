@@ -9,15 +9,6 @@ services:
       lan_net:
         ipv4_address: 172.50.0.2
     command: sh -c 'ip route replace default via 172.50.0.250 && tail -f /dev/null'
-  cible_2:
-    image: test/vuln-ubuntu
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    networks:
-      lan_net:
-        ipv4_address: 172.50.0.3
-    command: sh -c 'ip route replace default via 172.50.0.250 && tail -f /dev/null'
   attacker_1:
     image: test/kali_attack
     cap_add:
@@ -27,68 +18,6 @@ services:
       wan_net:
         ipv4_address: 172.60.0.2
     command: sh -c 'ip route replace default via 172.60.0.250 && tail -f /dev/null'
-  attacker_2:
-    image: test/kali_attack
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    networks:
-      wan_net:
-        ipv4_address: 172.60.0.3
-    command: sh -c 'ip route replace default via 172.60.0.250 && tail -f /dev/null'
-  attacker_3:
-    image: test/kali_attack
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    networks:
-      wan_net:
-        ipv4_address: 172.60.0.4
-    command: sh -c 'ip route replace default via 172.60.0.250 && tail -f /dev/null'
-  wazuh:
-    image: wazuh/wazuh:4.2.7
-    hostname: wazuh
-    ports:
-      - 1514:1514/udp
-      - 1515:1515
-      - 514:514/udp
-      - 55000:55000
-      - 55000:55000/udp
-    networks:
-      lan_net:
-        ipv4_address: 172.50.0.196
-  wazuh-kibana:
-    image: wazuh/wazuh-kibana:4.2.7
-    networks:
-      lan_net:
-        ipv4_address: 172.50.0.197
-    ports:
-      - 5601:5601
-    environment:
-      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-    networks:
-      lan_net:
-        ipv4_address: 172.50.0.198
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
-    ports:
-      - 9200:9200
-  suricata:
-    image: jasonish/suricata:latest
-    cap_add:
-      - NET_RAW
-      - NET_ADMIN
-    networks:
-      lan_net:
-        ipv4_address: 172.50.0.199
-    command: ['-i', 'eth0']
-    volumes:
-      - ./suricata:/etc/suricata
-    ports:
-      - 3000:3000
   gateway:
     image: test/gateway
     networks:
